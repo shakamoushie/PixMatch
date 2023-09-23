@@ -3,6 +3,7 @@ import os
 import time as tm
 import random
 import base64
+import json
 from PIL import Image
 from streamlit_autorefresh import st_autorefresh
 
@@ -47,23 +48,25 @@ purple_btn_colour = """
                         </style>
                     """
 
-if "expired_cells" not in st.session_state:
-    st.session_state.expired_cells = []
+mystate = st.session_state
 
-if "myscore" not in st.session_state:
-    st.session_state.myscore = 0
+if "expired_cells" not in mystate:
+    mystate.expired_cells = []
 
-if "plyrbtns" not in st.session_state:
-    st.session_state.plyrbtns = {}
+if "myscore" not in mystate:
+    mystate.myscore = 0
 
-if "sidebar_emoji" not in st.session_state:
-    st.session_state.sidebar_emoji = ''
+if "plyrbtns" not in mystate:
+    mystate.plyrbtns = {}
 
-if "emoji_bank" not in st.session_state:
-    st.session_state.emoji_bank = []
+if "sidebar_emoji" not in mystate:
+    mystate.sidebar_emoji = ''
 
-if "GameDetails" not in st.session_state:   
-    st.session_state.GameDetails = ['Medium', 6, 7]  # difficulty level, sec interval for autogen, total_cells_per_row_or_col
+if "emoji_bank" not in mystate:
+    mystate.emoji_bank = []
+
+if "GameDetails" not in mystate:   
+    mystate.GameDetails = ['Medium', 6, 7, '']  # difficulty level, sec interval for autogen, total_cells_per_row_or_col, player name
 
 # common functions
 def ReduceGapFromPageTop(wch_section = 'main page'):
@@ -73,13 +76,56 @@ def ReduceGapFromPageTop(wch_section = 'main page'):
     elif wch_section == 'sidebar':
         st.markdown(" <style> div[class^='css-1544g2n'] { padding-top: 0rem; } </style> ", unsafe_allow_html=True)
 
+def Leaderboard(what_to_do):
+    if what_to_do == 'create':
+        if mystate.GameDetails[3] != '':
+            if os.path.isfile(vpth + 'leaderboard.json') == False:
+                tmpdict = {}
+                json.dump(tmpdict, open(vpth + 'leaderboard.json', 'w'))     # write file
+
+    elif what_to_do == 'write':
+        if mystate.GameDetails[3] != '':       # record in leaderboard only if player name is provided
+            if os.path.isfile(vpth + 'leaderboard.json'):
+                leaderboard = json.load(open(vpth + 'leaderboard.json'))    # read file
+                leaderboard_dict_lngth = len(leaderboard)
+                    
+                leaderboard[str(leaderboard_dict_lngth + 1)] = {'NameCountry': mystate.GameDetails[3], 'HighestScore': mystate.myscore}
+                leaderboard = dict(sorted(leaderboard.items(), key=lambda item: item[1]['HighestScore'], reverse=True))  # sort desc
+
+                if len(leaderboard) > 3:
+                    for i in range(len(leaderboard)-3):
+                        leaderboard.popitem()    # rmv last kdict ey
+
+                json.dump(leaderboard, open(vpth + 'leaderboard.json', 'w'))     # write file
+
+    elif what_to_do == 'read':
+        if mystate.GameDetails[3] != '':       # record in leaderboard only if player name is provided
+            if os.path.isfile(vpth + 'leaderboard.json'):
+                leaderboard = json.load(open(vpth + 'leaderboard.json'))    # read file
+                    
+                leaderboard = dict(sorted(leaderboard.items(), key=lambda item: item[1]['HighestScore'], reverse=True))  # sort desc
+
+                sc0, sc1, sc2, sc3 = st.columns((2,3,3,3))
+                rknt = 0
+                for vkey in leaderboard.keys():
+                    if leaderboard[vkey]['NameCountry'] != '':
+                        rknt += 1
+                        if rknt == 1:
+                            sc0.write('🏆 Past Winners:')
+                            sc1.write(f"🥇 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
+                        elif rknt == 2:
+                            sc2.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
+                        elif rknt == 3:
+                            sc3.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
+
 def InitialPage():
     with st.sidebar:
         ReduceGapFromPageTop('sidebar')
         st.subheader("🖼️ Pix Match:")
         st.markdown(horizontal_bar, True)
 
-        sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 420))
+        # sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 420))
+        sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 375))
         st.image(sidebarlogo, use_column_width='auto')
 
     # ViewHelp
@@ -119,63 +165,63 @@ def ReadPictureFile(wch_fl):
         return ""
 
 def PressedCheck(vcell):
-    if st.session_state.plyrbtns[vcell]['isPressed'] == False:
-        st.session_state.plyrbtns[vcell]['isPressed'] = True
-        st.session_state.expired_cells.append(vcell)
+    if mystate.plyrbtns[vcell]['isPressed'] == False:
+        mystate.plyrbtns[vcell]['isPressed'] = True
+        mystate.expired_cells.append(vcell)
 
-        if st.session_state.plyrbtns[vcell]['eMoji'] == st.session_state.sidebar_emoji:
-            st.session_state.plyrbtns[vcell]['isTrueFalse'] = True
-            st.session_state.myscore += 5
+        if mystate.plyrbtns[vcell]['eMoji'] == mystate.sidebar_emoji:
+            mystate.plyrbtns[vcell]['isTrueFalse'] = True
+            mystate.myscore += 5
 
-            if st.session_state.GameDetails[0] == 'Easy':
-                st.session_state.myscore += 5
+            if mystate.GameDetails[0] == 'Easy':
+                mystate.myscore += 5
 
-            elif st.session_state.GameDetails[0] == 'Medium':
-                st.session_state.myscore += 3
+            elif mystate.GameDetails[0] == 'Medium':
+                mystate.myscore += 3
 
-            elif st.session_state.GameDetails[0] == 'Hard':
-                st.session_state.myscore += 1
+            elif mystate.GameDetails[0] == 'Hard':
+                mystate.myscore += 1
         
         else:
-            st.session_state.plyrbtns[vcell]['isTrueFalse'] = False
-            st.session_state.myscore -= 1
+            mystate.plyrbtns[vcell]['isTrueFalse'] = False
+            mystate.myscore -= 1
 
 def ResetBoard():
-    total_cells_per_row_or_col = st.session_state.GameDetails[2]
+    total_cells_per_row_or_col = mystate.GameDetails[2]
 
-    sidebar_emoji_no = random.randint(1, len(st.session_state.emoji_bank))-1
-    st.session_state.sidebar_emoji = st.session_state.emoji_bank[sidebar_emoji_no]
+    sidebar_emoji_no = random.randint(1, len(mystate.emoji_bank))-1
+    mystate.sidebar_emoji = mystate.emoji_bank[sidebar_emoji_no]
 
     sidebar_emoji_in_list = False
     for vcell in range(1, ((total_cells_per_row_or_col ** 2)+1)):
-        rndm_no = random.randint(1, len(st.session_state.emoji_bank))-1
-        if st.session_state.plyrbtns[vcell]['isPressed'] == False:
-            vemoji = st.session_state.emoji_bank[rndm_no]
-            st.session_state.plyrbtns[vcell]['eMoji'] = vemoji
-            if vemoji == st.session_state.sidebar_emoji:
+        rndm_no = random.randint(1, len(mystate.emoji_bank))-1
+        if mystate.plyrbtns[vcell]['isPressed'] == False:
+            vemoji = mystate.emoji_bank[rndm_no]
+            mystate.plyrbtns[vcell]['eMoji'] = vemoji
+            if vemoji == mystate.sidebar_emoji:
                 sidebar_emoji_in_list = True
 
     if sidebar_emoji_in_list == False:  # sidebar pix is not on any button; add pix randomly
         tlst = [x for x in range(1, ((total_cells_per_row_or_col ** 2)+1))]
-        flst = [x for x in tlst if x not in st.session_state.expired_cells]
+        flst = [x for x in tlst if x not in mystate.expired_cells]
         if len(flst) > 0:
             lptr = random.randint(0, (len(flst)-1))
             lptr = flst[lptr]
-            st.session_state.plyrbtns[lptr]['eMoji'] = st.session_state.sidebar_emoji
+            mystate.plyrbtns[lptr]['eMoji'] = mystate.sidebar_emoji
 
 def PreNewGame():
-    total_cells_per_row_or_col = st.session_state.GameDetails[2]
-    st.session_state.expired_cells = []
-    st.session_state.myscore = 0
+    total_cells_per_row_or_col = mystate.GameDetails[2]
+    mystate.expired_cells = []
+    mystate.myscore = 0
 
     foxes = ['😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾']
     emojis = ['😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😠', '😳', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤒']
     humans = ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '👨‍🦱', '👩‍🦰', '‍👨', '👱', '👩', '👱', '👩‍', '👨‍🦳', '👩‍🦲', '👵', '🧓', '👴', '👲', '👳'] 
-    foods = ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕']
+    foods = ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕']
     clocks = ['🕓', '🕒', '🕑', '🕘', '🕛', '🕚', '🕖', '🕙', '🕔', '🕤', '🕠', '🕕', '🕣', '🕞', '🕟', '🕜', '🕢', '🕦']
-    hands = ['🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🤚🏻', '🖐🏻', '✋🏻', '🖖🏻', '👌🏻', '🤏🏻', '✌🏻', '🤞🏻', '🤟🏻', '🤘🏻', '🤙🏻', '👈🏻', '👉🏻', '👆🏻', '🖕🏻', '👇🏻', '☝🏻', '👍🏻', '👎🏻', '✊🏻', '👊🏻', '🤛🏻', '🤜🏻', '👏🏻', '🙌🏻', '👐🏻', '🤚🏽', '🖐🏽', '✋🏽', '🖖🏽', '👌🏽', '🤏🏽', '✌🏽', '🤞🏽', '🤟🏽', '🤘🏽', '🤙🏽', '👈🏽', '👉🏽', '👆🏽', '🖕🏽', '👇🏽', '☝🏽', '👍🏽', '👎🏽', '✊🏽', '👊🏽', '🤛🏽', '🤜🏽', '👏🏽', '🙌🏽', '👐🏽']
-    animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔']
-    vehicles = ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🏍', '🛺', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩', '💺', '🛰', '🚀', '🛸', '🚁', '🛶', '⛵️', '🚤', '🛥', '🛳', '⛴', '🚢']
+    hands = ['🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '🤲', '🤝', '🤚🏻', '🖐🏻', '✋🏻', '🖖🏻', '👌🏻', '🤏🏻', '✌🏻', '🤞🏻', '🤟🏻', '🤘🏻', '🤙🏻', '👈🏻', '👉🏻', '👆🏻', '🖕🏻', '👇🏻', '☝🏻', '👍🏻', '👎🏻', '✊🏻', '👊🏻', '🤛🏻', '🤜🏻', '👏🏻', '🙌🏻', '🤚🏽', '🖐🏽', '✋🏽', '🖖🏽', '👌🏽', '🤏🏽', '✌🏽', '🤞🏽', '🤟🏽', '🤘🏽', '🤙🏽', '👈🏽', '👉🏽', '👆🏽', '🖕🏽', '👇🏽', '☝🏽', '👍🏽', '👎🏽', '✊🏽', '👊🏽', '🤛🏽', '🤜🏽', '👏🏽', '🙌🏽']
+    animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🐇', '🦝', '🦨', '🦦', '🦥', '🐁', '🐀', '🦔']
+    vehicles = ['🚗', '🚕', '🚙', '🚌', '🚎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🛺', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '💺', '🚀', '🛸', '🚁', '🛶', '⛵️', '🚤', '🛳', '⛴', '🚢']
     houses = ['🏠', '🏡', '🏘', '🏚', '🏗', '🏭', '🏢', '🏬', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏩', '💒', '🏛', '⛪️', '🕌', '🕍', '🛕']
     purple_signs = ['☮️', '✝️', '☪️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈️', '♉️', '♊️', '♋️', '♌️', '♍️', '♎️', '♏️', '♐️', '♑️', '♒️', '♓️', '🆔', '🈳']
     red_signs = ['🈶', '🈚️', '🈸', '🈺', '🈷️', '✴️', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '🚼', '🛑', '⛔️', '📛', '🚫', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭']
@@ -183,62 +229,63 @@ def PreNewGame():
     moon = ['🌕', '🌔', '🌓', '🌗', '🌒', '🌖', '🌑', '🌜', '🌛', '🌙']
 
     random.seed()
-    if st.session_state.GameDetails[0] == 'Easy':
+    if mystate.GameDetails[0] == 'Easy':
         wch_bank = random.choice(['foods', 'moon', 'animals'])
-        st.session_state.emoji_bank = locals()[wch_bank]
+        mystate.emoji_bank = locals()[wch_bank]
 
-    elif st.session_state.GameDetails[0] == 'Medium':
+    elif mystate.GameDetails[0] == 'Medium':
         wch_bank = random.choice(['foxes', 'emojis', 'humans', 'vehicles', 'houses', 'hands', 'purple_signs', 'red_signs', 'blue_signs'])
-        st.session_state.emoji_bank = locals()[wch_bank]
+        mystate.emoji_bank = locals()[wch_bank]
 
-    elif st.session_state.GameDetails[0] == 'Hard':
+    elif mystate.GameDetails[0] == 'Hard':
         wch_bank = random.choice(['foxes', 'emojis', 'humans', 'foods', 'clocks', 'hands', 'animals', 'vehicles', 'houses', 'purple_signs', 'red_signs', 'blue_signs', 'moon'])
-        st.session_state.emoji_bank = locals()[wch_bank]
+        mystate.emoji_bank = locals()[wch_bank]
 
-    st.session_state.plyrbtns = {}
+    mystate.plyrbtns = {}
     for vcell in range(1, ((total_cells_per_row_or_col ** 2)+1)):
-        st.session_state.plyrbtns[vcell] = {'isPressed': False, 'isTrueFalse': False, 'eMoji': ''}
+        mystate.plyrbtns[vcell] = {'isPressed': False, 'isTrueFalse': False, 'eMoji': ''}
 
 def ScoreEmoji():
-    if st.session_state.myscore == 0:
+    if mystate.myscore == 0:
         return '😐'
-    elif -5 <= st.session_state.myscore <= -1:
+    elif -5 <= mystate.myscore <= -1:
         return '😏'
-    elif -10 <= st.session_state.myscore <= -6:
+    elif -10 <= mystate.myscore <= -6:
         return '☹️'
-    elif st.session_state.myscore <= -11:
+    elif mystate.myscore <= -11:
         return '😖'
-    elif 1 <= st.session_state.myscore <= 5:
+    elif 1 <= mystate.myscore <= 5:
         return '🙂'
-    elif 6 <= st.session_state.myscore <= 10:
+    elif 6 <= mystate.myscore <= 10:
         return '😊'
-    elif st.session_state.myscore > 10:
+    elif mystate.myscore > 10:
         return '😁'
 
 def NewGame():
     ReduceGapFromPageTop()
     ResetBoard()
-    total_cells_per_row_or_col = st.session_state.GameDetails[2]
+    total_cells_per_row_or_col = mystate.GameDetails[2]
 
     ReduceGapFromPageTop('sidebar')
     with st.sidebar:
-        st.subheader(f"🖼️ Pix Match: {st.session_state.GameDetails[0]}")
+        st.subheader(f"🖼️ Pix Match: {mystate.GameDetails[0]}")
         st.markdown(horizontal_bar, True)
 
-        st.markdown(sbe.replace('|fill_variable|', st.session_state.sidebar_emoji), True)
+        st.markdown(sbe.replace('|fill_variable|', mystate.sidebar_emoji), True)
 
-        aftimer = st_autorefresh(interval=(st.session_state.GameDetails[1] * 1000), key="aftmr")
+        aftimer = st_autorefresh(interval=(mystate.GameDetails[1] * 1000), key="aftmr")
         if aftimer > 0:
-            st.session_state.myscore -= 1
+            mystate.myscore -= 1
 
-        st.info(f"{ScoreEmoji()} Score: {st.session_state.myscore} | Pending: {(total_cells_per_row_or_col ** 2)-len(st.session_state.expired_cells)}")
+        st.info(f"{ScoreEmoji()} Score: {mystate.myscore} | Pending: {(total_cells_per_row_or_col ** 2)-len(mystate.expired_cells)}")
 
         st.markdown(horizontal_bar, True)
         mpspc = '&nbsp;' * 7
         if st.button(f"🔙 Return to Main Page {mpspc}"):
-            st.session_state.runpage = Main
-            st.experimental_rerun()
+            mystate.runpage = Main
+            st.rerun()
     
+    Leaderboard('read')
     st.subheader("Picture Positions:")
     st.markdown(horizontal_bar, True)
 
@@ -291,30 +338,31 @@ def NewGame():
             mval = (total_cells_per_row_or_col * 9)
             
         globals()['cols' + arr_ref][vcell-mval] = globals()['cols' + arr_ref][vcell-mval].empty()
-        if st.session_state.plyrbtns[vcell]['isPressed'] == True:
-            if st.session_state.plyrbtns[vcell]['isTrueFalse'] == True:
+        if mystate.plyrbtns[vcell]['isPressed'] == True:
+            if mystate.plyrbtns[vcell]['isTrueFalse'] == True:
                 globals()['cols' + arr_ref][vcell-mval].markdown(pressed_emoji.replace('|fill_variable|', '✅️'), True)
             
-            elif st.session_state.plyrbtns[vcell]['isTrueFalse'] == False:
+            elif mystate.plyrbtns[vcell]['isTrueFalse'] == False:
                 globals()['cols' + arr_ref][vcell-mval].markdown(pressed_emoji.replace('|fill_variable|', '❌'), True)
 
         else:
-            vemoji = st.session_state.plyrbtns[vcell]['eMoji']
+            vemoji = mystate.plyrbtns[vcell]['eMoji']
             globals()['cols' + arr_ref][vcell-mval].button(vemoji, on_click=PressedCheck, args=(vcell, ), key=f"B{vcell}")
 
     st.caption('') # vertical filler
     st.markdown(horizontal_bar, True)
 
-    if len(st.session_state.expired_cells) == (total_cells_per_row_or_col ** 2):
-        if st.session_state.myscore > 0:
+    if len(mystate.expired_cells) == (total_cells_per_row_or_col ** 2):
+        Leaderboard('write')
+        if mystate.myscore > 0:
             st.balloons()
         
-        elif st.session_state.myscore <= 0:
+        elif mystate.myscore <= 0:
             st.snow()
 
         tm.sleep(5)
-        st.session_state.runpage = Main
-        st.experimental_rerun()
+        mystate.runpage = Main
+        st.rerun()
 
 def Main():
     ReduceGapFromPageTop()
@@ -322,29 +370,33 @@ def Main():
 
     InitialPage()
     with st.sidebar:
-        st.session_state.GameDetails[0] = st.radio('Difficulty Level:', options=('Easy', 'Medium', 'Hard'), index=1, horizontal=True)
-        
+        mystate.GameDetails[0] = st.radio('Difficulty Level:', options=('Easy', 'Medium', 'Hard'), index=1, horizontal=True)
+        mystate.GameDetails[3] = st.text_input("Player Name, Country", placeholder='Shawn Pereira, India', help='Optional input only for Leaderboard')
 
         gr_spc = '&nbsp;' * 53
         if st.button(f"🕹️ New Game {gr_spc}"):
 
-            if st.session_state.GameDetails[0] == 'Easy':
-                st.session_state.GameDetails[1] = 8         # secs interval
-                st.session_state.GameDetails[2] = 6         # total_cells_per_row_or_col
-            elif st.session_state.GameDetails[0] == 'Medium':
-                st.session_state.GameDetails[1] = 6         # secs interval
-                st.session_state.GameDetails[2] = 7         # total_cells_per_row_or_col
-            elif st.session_state.GameDetails[0] == 'Hard':
-                st.session_state.GameDetails[1] = 5         # secs interval
-                st.session_state.GameDetails[2] = 8         # total_cells_per_row_or_col
+            if mystate.GameDetails[0] == 'Easy':
+                mystate.GameDetails[1] = 8         # secs interval
+                mystate.GameDetails[2] = 6         # total_cells_per_row_or_col
+            
+            elif mystate.GameDetails[0] == 'Medium':
+                mystate.GameDetails[1] = 6         # secs interval
+                mystate.GameDetails[2] = 7         # total_cells_per_row_or_col
+            
+            elif mystate.GameDetails[0] == 'Hard':
+                mystate.GameDetails[1] = 5         # secs interval
+                mystate.GameDetails[2] = 8         # total_cells_per_row_or_col
+
+            Leaderboard('create')
 
             PreNewGame()
-            st.session_state.runpage = NewGame
-            st.experimental_rerun()
+            mystate.runpage = NewGame
+            st.rerun()
 
         st.markdown(horizontal_bar, True)
 
-if 'runpage' not in st.session_state:
-    st.session_state.runpage = Main
+if 'runpage' not in mystate:
+    mystate.runpage = Main
 
-st.session_state.runpage()
+mystate.runpage()
