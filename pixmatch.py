@@ -74,7 +74,7 @@ def ReduceGapFromPageTop(wch_section = 'main page'):
         st.markdown(" <style> div[class^='block-container'] { padding-top: 3rem; } </style> ", unsafe_allow_html=True)  # reduce gap from page top
     
     elif wch_section == 'sidebar':
-        st.markdown(" <style> div[class^='css-1544g2n'] { padding-top: 0rem; } </style> ", unsafe_allow_html=True)
+        st.markdown(" <style> div[class^='st-emotion-cache-10oheav'] { padding-top: 0rem; } </style> ", unsafe_allow_html=True)
 
 def Leaderboard(what_to_do):
     if what_to_do == 'create':
