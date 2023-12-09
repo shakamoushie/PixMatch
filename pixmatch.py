@@ -10,10 +10,8 @@ from streamlit_autorefresh import st_autorefresh
 st.set_page_config(page_title = "PixMatch", page_icon="🕹️", layout = "wide", initial_sidebar_state = "expanded")
 
 vDrive = os.path.splitdrive(os.getcwd())[0]
-if vDrive == "C:":
-    vpth = "C:/Users/Shawn/dev/utils/pixmatch/"   # local developer's disc
-else:
-    vpth = "./"
+if vDrive == "C:": vpth = "C:/Users/Shawn/dev/utils/pixmatch/"   # local developer's disc
+else: vpth = "./"
 
 sbe = """<span style='font-size: 140px;
                       border-radius: 7px;
@@ -27,7 +25,7 @@ sbe = """<span style='font-size: 140px;
                       |fill_variable|
                       </span>"""
 
-pressed_emoji = """<span style='font-size: 34px;
+pressed_emoji = """<span style='font-size: 24px;
                                 border-radius: 7px;
                                 text-align: center;
                                 display:inline;
@@ -49,33 +47,21 @@ purple_btn_colour = """
                     """
 
 mystate = st.session_state
-
-if "expired_cells" not in mystate:
-    mystate.expired_cells = []
-
-if "myscore" not in mystate:
-    mystate.myscore = 0
-
-if "plyrbtns" not in mystate:
-    mystate.plyrbtns = {}
-
-if "sidebar_emoji" not in mystate:
-    mystate.sidebar_emoji = ''
-
-if "emoji_bank" not in mystate:
-    mystate.emoji_bank = []
-
-if "GameDetails" not in mystate:   
-    mystate.GameDetails = ['Medium', 6, 7, '']  # difficulty level, sec interval for autogen, total_cells_per_row_or_col, player name
+if "expired_cells" not in mystate: mystate.expired_cells = []
+if "myscore" not in mystate: mystate.myscore = 0
+if "plyrbtns" not in mystate: mystate.plyrbtns = {}
+if "sidebar_emoji" not in mystate: mystate.sidebar_emoji = ''
+if "emoji_bank" not in mystate: mystate.emoji_bank = []
+if "GameDetails" not in mystate: mystate.GameDetails = ['Medium', 6, 7, '']  # difficulty level, sec interval for autogen, total_cells_per_row_or_col, player name
 
 # common functions
 def ReduceGapFromPageTop(wch_section = 'main page'):
-    if wch_section == 'main page':
-        st.markdown(" <style> div[class^='block-container'] { padding-top: 3rem; } </style> ", unsafe_allow_html=True)  # reduce gap from page top
+    if wch_section == 'main page': st.markdown(" <style> div[class^='block-container'] { padding-top: 2rem; } </style> ", True) # main area
+    elif wch_section == 'sidebar': st.markdown(" <style> div[class^='st-emotion-cache-10oheav'] { padding-top: 0rem; } </style> ", True) # sidebar
+    elif wch_section == 'all': 
+        st.markdown(" <style> div[class^='block-container'] { padding-top: 2rem; } </style> ", True) # main area
+        st.markdown(" <style> div[class^='st-emotion-cache-10oheav'] { padding-top: 0rem; } </style> ", True) # sidebar
     
-    elif wch_section == 'sidebar':
-        st.markdown(" <style> div[class^='st-emotion-cache-10oheav'] { padding-top: 0rem; } </style> ", unsafe_allow_html=True)
-
 def Leaderboard(what_to_do):
     if what_to_do == 'create':
         if mystate.GameDetails[3] != '':
@@ -93,8 +79,7 @@ def Leaderboard(what_to_do):
                 leaderboard = dict(sorted(leaderboard.items(), key=lambda item: item[1]['HighestScore'], reverse=True))  # sort desc
 
                 if len(leaderboard) > 3:
-                    for i in range(len(leaderboard)-3):
-                        leaderboard.popitem()    # rmv last kdict ey
+                    for i in range(len(leaderboard)-3): leaderboard.popitem()    # rmv last kdict ey
 
                 json.dump(leaderboard, open(vpth + 'leaderboard.json', 'w'))     # write file
 
@@ -113,24 +98,19 @@ def Leaderboard(what_to_do):
                         if rknt == 1:
                             sc0.write('🏆 Past Winners:')
                             sc1.write(f"🥇 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
-                        elif rknt == 2:
-                            sc2.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
-                        elif rknt == 3:
-                            sc3.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
+                        elif rknt == 2: sc2.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
+                        elif rknt == 3: sc3.write(f"🥈 | {leaderboard[vkey]['NameCountry']}: :red[{leaderboard[vkey]['HighestScore']}]")
 
 def InitialPage():
     with st.sidebar:
-        ReduceGapFromPageTop('sidebar')
         st.subheader("🖼️ Pix Match:")
         st.markdown(horizontal_bar, True)
 
         # sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 420))
-        sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 375))
+        sidebarlogo = Image.open('sidebarlogo.jpg').resize((300, 390))
         st.image(sidebarlogo, use_column_width='auto')
 
     # ViewHelp
-    ReduceGapFromPageTop()
-
     hlp_dtl = f"""<span style="font-size: 26px;">
     <ol>
     <li style="font-size:15px";>Game play opens with (a) a sidebar picture and (b) a N x N grid of picture buttons, where N=6:Easy, N=7:Medium, N=8:Hard.</li>
@@ -161,8 +141,7 @@ def ReadPictureFile(wch_fl):
         pxfl = f"{vpth}{wch_fl}"
         return base64.b64encode(open(pxfl, 'rb').read()).decode()
 
-    except:
-        return ""
+    except: return ""
 
 def PressedCheck(vcell):
     if mystate.plyrbtns[vcell]['isPressed'] == False:
@@ -173,14 +152,9 @@ def PressedCheck(vcell):
             mystate.plyrbtns[vcell]['isTrueFalse'] = True
             mystate.myscore += 5
 
-            if mystate.GameDetails[0] == 'Easy':
-                mystate.myscore += 5
-
-            elif mystate.GameDetails[0] == 'Medium':
-                mystate.myscore += 3
-
-            elif mystate.GameDetails[0] == 'Hard':
-                mystate.myscore += 1
+            if mystate.GameDetails[0] == 'Easy': mystate.myscore += 5
+            elif mystate.GameDetails[0] == 'Medium': mystate.myscore += 3
+            elif mystate.GameDetails[0] == 'Hard': mystate.myscore += 1
         
         else:
             mystate.plyrbtns[vcell]['isTrueFalse'] = False
@@ -198,8 +172,7 @@ def ResetBoard():
         if mystate.plyrbtns[vcell]['isPressed'] == False:
             vemoji = mystate.emoji_bank[rndm_no]
             mystate.plyrbtns[vcell]['eMoji'] = vemoji
-            if vemoji == mystate.sidebar_emoji:
-                sidebar_emoji_in_list = True
+            if vemoji == mystate.sidebar_emoji: sidebar_emoji_in_list = True
 
     if sidebar_emoji_in_list == False:  # sidebar pix is not on any button; add pix randomly
         tlst = [x for x in range(1, ((total_cells_per_row_or_col ** 2)+1))]
@@ -242,27 +215,18 @@ def PreNewGame():
         mystate.emoji_bank = locals()[wch_bank]
 
     mystate.plyrbtns = {}
-    for vcell in range(1, ((total_cells_per_row_or_col ** 2)+1)):
-        mystate.plyrbtns[vcell] = {'isPressed': False, 'isTrueFalse': False, 'eMoji': ''}
+    for vcell in range(1, ((total_cells_per_row_or_col ** 2)+1)): mystate.plyrbtns[vcell] = {'isPressed': False, 'isTrueFalse': False, 'eMoji': ''}
 
 def ScoreEmoji():
-    if mystate.myscore == 0:
-        return '😐'
-    elif -5 <= mystate.myscore <= -1:
-        return '😏'
-    elif -10 <= mystate.myscore <= -6:
-        return '☹️'
-    elif mystate.myscore <= -11:
-        return '😖'
-    elif 1 <= mystate.myscore <= 5:
-        return '🙂'
-    elif 6 <= mystate.myscore <= 10:
-        return '😊'
-    elif mystate.myscore > 10:
-        return '😁'
+    if mystate.myscore == 0: return '😐'
+    elif -5 <= mystate.myscore <= -1: return '😏'
+    elif -10 <= mystate.myscore <= -6: return '☹️'
+    elif mystate.myscore <= -11: return '😖'
+    elif 1 <= mystate.myscore <= 5: return '🙂'
+    elif 6 <= mystate.myscore <= 10: return '😊'
+    elif mystate.myscore > 10: return '😁'
 
 def NewGame():
-    ReduceGapFromPageTop()
     ResetBoard()
     total_cells_per_row_or_col = mystate.GameDetails[2]
 
@@ -274,14 +238,12 @@ def NewGame():
         st.markdown(sbe.replace('|fill_variable|', mystate.sidebar_emoji), True)
 
         aftimer = st_autorefresh(interval=(mystate.GameDetails[1] * 1000), key="aftmr")
-        if aftimer > 0:
-            mystate.myscore -= 1
+        if aftimer > 0: mystate.myscore -= 1
 
         st.info(f"{ScoreEmoji()} Score: {mystate.myscore} | Pending: {(total_cells_per_row_or_col ** 2)-len(mystate.expired_cells)}")
 
         st.markdown(horizontal_bar, True)
-        mpspc = '&nbsp;' * 7
-        if st.button(f"🔙 Return to Main Page {mpspc}"):
+        if st.button(f"🔙 Return to Main Page", use_container_width=True):
             mystate.runpage = Main
             st.rerun()
     
@@ -354,27 +316,24 @@ def NewGame():
 
     if len(mystate.expired_cells) == (total_cells_per_row_or_col ** 2):
         Leaderboard('write')
-        if mystate.myscore > 0:
-            st.balloons()
-        
-        elif mystate.myscore <= 0:
-            st.snow()
+
+        if mystate.myscore > 0: st.balloons()
+        elif mystate.myscore <= 0: st.snow()
 
         tm.sleep(5)
         mystate.runpage = Main
         st.rerun()
 
 def Main():
-    ReduceGapFromPageTop()
+    st.markdown('<style>[data-testid="stSidebar"] > div:first-child {width: 310px;}</style>', unsafe_allow_html=True,)  # reduce sidebar width
     st.markdown(purple_btn_colour, unsafe_allow_html=True)
 
     InitialPage()
     with st.sidebar:
-        mystate.GameDetails[0] = st.radio('Difficulty Level:', options=('Easy', 'Medium', 'Hard'), index=1, horizontal=True)
+        mystate.GameDetails[0] = st.radio('Difficulty Level:', options=('Easy', 'Medium', 'Hard'), index=1, horizontal=True, )
         mystate.GameDetails[3] = st.text_input("Player Name, Country", placeholder='Shawn Pereira, India', help='Optional input only for Leaderboard')
 
-        gr_spc = '&nbsp;' * 53
-        if st.button(f"🕹️ New Game {gr_spc}"):
+        if st.button(f"🕹️ New Game", use_container_width=True):
 
             if mystate.GameDetails[0] == 'Easy':
                 mystate.GameDetails[1] = 8         # secs interval
@@ -396,7 +355,6 @@ def Main():
 
         st.markdown(horizontal_bar, True)
 
-if 'runpage' not in mystate:
-    mystate.runpage = Main
 
+if 'runpage' not in mystate: mystate.runpage = Main
 mystate.runpage()

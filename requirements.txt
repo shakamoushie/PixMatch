@@ -1,7 +1,7 @@
-streamlit==1.27.0
+streamlit==1.29.0
 Pillow==9.5.0
-streamlit-autorefresh
-pandas
+streamlit-autorefresh==1.0.1
+pandas==2.0.3
 
 
 
